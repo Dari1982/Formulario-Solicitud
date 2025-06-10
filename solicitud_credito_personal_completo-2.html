@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Solicitud de Crédito Personal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h2 {
+      color: #222;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+    }
+    .form-section {
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    input[readonly], select[disabled] {
+      background-color: #efefef;
+      color: #777;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-rojo {
+      background-color: #d9534f;
+      color: white;
+      border: none;
+    }
+    .btn-azul {
+      background-color: #0275d8;
+      color: white;
+      border: none;
+    }
+    .section-highlight {
+      background-color: #eef7ff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .mensaje {
+      color: #d9534f;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .debug-visible {
+      background-color: #fff8dc;
+      padding: 5px;
+      font-size: 0.9em;
+      border: 1px dashed #aaa;
+      color: #000;
+    }
+    @media (max-width: 768px) {
+      .form-section {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-section">
+    <div>
+      <label for="folio"><i class="fas fa-hashtag"></i> Folio de solicitud</label>
+      <input type="text" id="folio" readonly maxlength="10">
+    </div>
+    <div>
+      <label for="estatus"><i class="fas fa-hourglass-half"></i> Estatus Solicitud</label>
+      <input type="text" id="estatus" value="En proceso" readonly>
+    </div>
+    <div class="full-width">
+      <label for="cliente"><i class="fas fa-user"></i> Nombre del cliente</label>
+      <input type="text" id="cliente" value="Daniel Chávez Suarez" readonly>
+    </div>
+    <div>
+      <label for="ingresos"><i class="fas fa-dollar-sign"></i> Ingresos Mensuales</label>
+      <input type="number" id="ingresos" min="0" step="0.01" value="0.00">
+    </div>
+    <div>
+      <label for="plazo"><i class="fas fa-calendar"></i> Plazo</label>
+      <select id="plazo" onchange="actualizarOferta()">
+        <option value="6">6</option>
+        <option value="12">12</option>
+        <option value="18">18</option>
+        <option value="24">24</option>
+        <option value="36">36</option>
+        <option value="48">48</option>
+        <option value="60" selected>60</option>
+      </select>
+    </div>
+    <div>
+      <label for="oferta"><i class="fas fa-gift"></i> Oferta de Crédito</label>
+      <input type="text" id="oferta" readonly>
+    </div>
+    <div>
+      <label for="montoSolicitud"><i class="fas fa-pen"></i> Monto solicitud</label>
+      <input type="number" id="montoSolicitud" min="0" onchange="validarMontoSolicitud()">
+    </div>
+    <div class="full-width">
+      <label for="aceptaOferta"><i class="fas fa-check"></i> ¿Acepta Oferta?</label>
+      <select id="aceptaOferta" onchange="procesarAceptacion()">
+        <option value="">Seleccione</option>
+        <option value="Si">Si</option>
+        <option value="No">No</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section-highlight" id="seccionDesembolso" style="display:none">
+    <div class="form-section">
+      <div class="full-width">
+        <label for="fechaPago"><i class="fas fa-calendar-alt"></i> Fecha de pago</label>
+        <input type="date" id="fechaPago">
+      </div>
+    </div>
+    <button class="btn-azul" onclick="realizarDesembolso()"><i class="fas fa-coins"></i> Desembolso</button>
+  </div>
+
+  <div class="mensaje" id="mensajeEvaluacion"></div>
+
+  <div class="form-section">
+    <button class="btn-azul full-width" onclick="evaluarCredito()"><i class="fas fa-balance-scale"></i> Evaluación de Crédito</button>
+    <button class="btn-rojo full-width" onclick="cancelarSolicitud()"><i class="fas fa-ban"></i> Cancelar</button>
+  </div>
+
+  <script>
+    function obtenerNuevoFolio() {
+      let folio = localStorage.getItem('folio');
+      if (!folio) {
+        folio = 1;
+      } else {
+        folio = parseInt(folio) + 1;
+      }
+      localStorage.setItem('folio', folio);
+      return folio.toString().padStart(10, '0');
+    }
+
+    window.onload = function() {
+      var folioInput = document.getElementById('folio');
+      if (folioInput) {
+        let folio = localStorage.getItem('folio');
+        if (!folio) {
+          folio = 1;
+        } else {
+          folio = parseInt(folio) + 1;
+        }
+        localStorage.setItem('folio', folio);
+        folioInput.value = folio.toString().padStart(10, '0');
+      }
+    };
+
+    function cancelarSolicitud() {
+      document.getElementById('estatus').value = "Cancelada";
+    }
+
+    function evaluarCredito() {
+      const mensaje = document.getElementById('mensajeEvaluacion');
+      mensaje.textContent = "";
+      const ingresos = parseFloat(document.getElementById('ingresos').value);
+      if (ingresos <= 0) {
+        mensaje.textContent = "Los ingresos deben ser mayores a cero.";
+        return;
+      }
+      const gastos = ingresos * 0.30;
+      const capacidadPago = ingresos - 3000 - gastos;
+      let montoOferta = 80000;
+      let plazo = parseInt(document.getElementById('plazo').value);
+
+      while (montoOferta >= 5000) {
+        let pagoCapital = montoOferta / plazo;
+        let interes = montoOferta * 0.0207;
+        let pagoMensual = pagoCapital + interes;
+        if (capacidadPago >= pagoMensual) break;
+        montoOferta -= 100;
+      }
+
+      if (montoOferta < 5000) {
+        mensaje.textContent = "El cliente no cuenta con capacidad de pago.";
+        document.getElementById('oferta').value = "";
+        return;
+      }
+
+      document.getElementById('oferta').value = montoOferta.toFixed(2);
+    }
+
+    function validarMontoSolicitud() {
+      const monto = parseFloat(document.getElementById('montoSolicitud').value);
+      const oferta = parseFloat(document.getElementById('oferta').value);
+      const mensaje = document.getElementById('mensajeEvaluacion');
+      if (monto > oferta) {
+        mensaje.textContent = "El monto capturado es mayor a la oferta de crédito";
+        document.getElementById('montoSolicitud').value = "";
+      } else {
+        mensaje.textContent = "";
+      }
+    }
+
+    function actualizarOferta() {
+      document.getElementById('montoSolicitud').value = "";
+      evaluarCredito();
+    }
+
+    function procesarAceptacion() {
+      const valor = document.getElementById('aceptaOferta').value;
+      if (valor === "Si") {
+        document.getElementById('seccionDesembolso').style.display = "block";
+      } else if (valor === "No") {
+        document.getElementById('estatus').value = "Cancelada";
+        document.getElementById('seccionDesembolso').style.display = "none";
+      }
+    }
+
+    function realizarDesembolso() {
+      alert("Desembolso exitoso");
+      document.getElementById('estatus').value = "Finalizada";
+    }
+  </script>
+</body>
+</html>
