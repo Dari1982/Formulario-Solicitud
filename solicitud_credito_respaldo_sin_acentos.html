@@ -1,0 +1,148 @@
+
+<!-- RESPALDO DE Solicitud de Credito Personal -->
+<!-- Version actual validada por el usuario -->
+<!-- Fecha: 2025-06-03 -->
+
+<!-- Formulario de Solicitud de Credito Personal -->
+<div class="credit-form" style="max-width: 700px; margin: auto; padding: 20px; font-family: Arial, sans-serif; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+  <h1 style="text-align: center; color: #004080;">Solicitud de Credito Personal</h1>
+
+  <!-- Informacion General de la Solicitud -->
+  <fieldset style="border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px;">
+    <legend style="font-weight: bold; font-size: 18px;">Informacion General de la Solicitud</legend>
+
+    <label for="folio">Folio de solicitud:</label>
+    <input type="text" id="folio" readonly style="width: 100%; padding: 8px; margin-bottom: 10px; background-color: #e9ecef;">
+
+    <label for="nombreSocio">Nombre del socio:</label>
+    <input type="text" id="nombreSocio" value="Daniel Suarez Martinez" readonly style="width: 100%; padding: 8px; margin-bottom: 10px; background-color: #e9ecef;">
+
+    <label for="ingresos">Ingresos:</label>
+    <input type="number" id="ingresos" step="0.01" min="0" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+
+    <button id="evaluarBtn" type="button" style="width: 100%; background-color: #0078D4; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 16px;">Evaluacion</button>
+
+    <label for="montoSolicitud" style="margin-top: 15px; display: block;">Monto Solicitud:</label>
+    <input type="text" id="montoSolicitud" readonly style="width: 100%; padding: 8px; background-color: #e9ecef;">
+
+    <label for="plazo" style="margin-top: 15px; display: block;">Plazo:</label>
+    <select id="plazo" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+      <option value="6">6</option>
+      <option value="12">12</option>
+      <option value="18">18</option>
+      <option value="24">24</option>
+      <option value="36">36</option>
+      <option value="48" selected>48</option>
+      <option value="60">60</option>
+    </select>
+
+    <div id="motivoContainer" style="display: none;">
+      <label for="motivo" style="margin-top: 15px; display: block;">Motivo:</label>
+      <input type="text" id="motivo" readonly style="width: 100%; padding: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb;">
+    </div>
+
+    <label for="aceptaCondiciones" style="margin-top: 15px; display: block;">Acepta condiciones:</label>
+    <select id="aceptaCondiciones" onchange="actualizarEstatus()" style="width: 100%; padding: 8px;">
+      <option value="">Seleccione...</option>
+      <option value="Si">Si</option>
+      <option value="No">No</option>
+    </select>
+  </fieldset>
+
+  <!-- Informacion para Desembolso -->
+  <fieldset id="infoDesembolso" style="display: none; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px;">
+    <legend style="font-weight: bold; font-size: 18px;">Informacion para Desembolso</legend>
+
+    <label for="fechaDesembolso">Fecha Desembolso:</label>
+    <input type="date" id="fechaDesembolso" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+
+    <button id="desembolsoBtn" type="button" onclick="realizarDesembolso()" style="width: 100%; background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 16px;">Realizar Desembolso</button>
+  </fieldset>
+
+  <!-- Estatus de Solicitud -->
+  <fieldset style="border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px;">
+    <legend style="font-weight: bold; font-size: 18px;">Estatus de Solicitud</legend>
+    <input type="text" id="estatus" readonly style="width: 100%; padding: 8px; background-color: #e9ecef;">
+  </fieldset>
+
+  <div id="cancelarContainer" style="display: none; margin-top: 20px;">
+    <button type="button" onclick="cancelarSolicitud()" style="width: 100%; background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 16px;">Cancelar Solicitud</button>
+  </div>
+</div>
+
+<script>
+document.getElementById("evaluarBtn").addEventListener("click", evaluarSolicitud);
+document.getElementById("plazo").addEventListener("change", evaluarSolicitud);
+
+document.addEventListener("DOMContentLoaded", function () {
+  const folio = localStorage.getItem("ultimoFolio") || "0000000000";
+  const nuevoFolio = (parseInt(folio, 10) + 1).toString().padStart(10, '0');
+  document.getElementById("folio").value = nuevoFolio;
+  localStorage.setItem("ultimoFolio", nuevoFolio);
+});
+
+function evaluarSolicitud() {
+  const ingresos = parseFloat(document.getElementById("ingresos").value);
+  const montoSolicitudInput = document.getElementById("montoSolicitud");
+  const motivoContainer = document.getElementById("motivoContainer");
+  const motivo = document.getElementById("motivo");
+  const aceptarCondiciones = document.getElementById("aceptaCondiciones");
+  const cancelarContainer = document.getElementById("cancelarContainer");
+  const plazo = parseInt(document.getElementById("plazo").value);
+
+  motivoContainer.style.display = "none";
+  motivo.value = "";
+  aceptarCondiciones.disabled = false;
+  cancelarContainer.style.display = "none";
+
+  if (ingresos <= 0 || isNaN(ingresos)) {
+    alert("El valor de ingresos debe ser mayor a 0.00");
+    return;
+  }
+
+  const gastosPersonales = ingresos * 0.20;
+  const capacidadPago = ingresos - gastosPersonales - 2000;
+
+  if (capacidadPago <= 0) {
+    montoSolicitudInput.value = "$0";
+    motivoContainer.style.display = "block";
+    motivo.value = "Ingresos insuficientes.";
+    aceptarCondiciones.disabled = true;
+    cancelarContainer.style.display = "block";
+    return;
+  }
+
+  const interesMensual = 0.017;
+  const pagoMensualMaximo = capacidadPago;
+  const montoAutorizado = Math.round(((pagoMensualMaximo * plazo) / (1 + interesMensual)) / 1000) * 1000;
+
+  montoSolicitudInput.value = montoAutorizado.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+}
+
+function actualizarEstatus() {
+  const seleccion = document.getElementById("aceptaCondiciones").value;
+  const estatus = document.getElementById("estatus");
+  const infoDesembolso = document.getElementById("infoDesembolso");
+
+  if (seleccion === "Si") {
+    estatus.value = "Solicitud Aprobada";
+    infoDesembolso.style.display = "block";
+  } else if (seleccion === "No") {
+    estatus.value = "Solicitud Cancelada";
+    infoDesembolso.style.display = "none";
+  } else {
+    estatus.value = "";
+    infoDesembolso.style.display = "none";
+  }
+}
+
+function realizarDesembolso() {
+  document.getElementById("estatus").value = "Solicitud Desembolsada";
+  alert("Desembolso realizado exitosamente.");
+}
+
+function cancelarSolicitud() {
+  document.getElementById("estatus").value = "Solicitud Cancelada";
+  alert("La solicitud ha sido cancelada.");
+}
+</script>
